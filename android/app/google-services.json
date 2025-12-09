@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "376813789640",
+    "project_id": "upsglam-f87f9",
+    "storage_bucket": "upsglam-f87f9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:376813789640:android:857c35c282cd86ae0e60fd",
+        "android_client_info": {
+          "package_name": "com.upsglam.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "376813789640-4fepjhiftbj0q9ofjqgu76jsr9hfl6ne.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.upsglam.app",
+            "certificate_hash": "8ef8eab111617b4a767e59b4844eb1ca9271f3a0"
+          }
+        },
+        {
+          "client_id": "376813789640-hdii1ltr7sue2j6c4dd8mtgnas5tlpde.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARSYV7tR682qZ_vRBTwLc6g5wZ2_EupdQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "376813789640-hdii1ltr7sue2j6c4dd8mtgnas5tlpde.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

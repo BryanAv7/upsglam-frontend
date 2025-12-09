@@ -1,4 +1,4 @@
-package com.upsglam.app.upsglam_app
+package com.upsglam.app
 
 import io.flutter.embedding.android.FlutterActivity
 
