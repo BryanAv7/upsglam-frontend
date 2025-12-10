@@ -23,11 +23,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _register() async {
     setState(() => loading = true);
     try {
-      final username = await AuthService.register(
+      final result = await AuthService.register(
         userCtrl.text.trim(),
         emailCtrl.text.trim(),
         passCtrl.text.trim(),
       );
+
+      final displayName = result["displayName"] ?? userCtrl.text.trim();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Usuario registrado: $displayName"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -46,8 +56,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _registerWithGoogle() async {
     setState(() => loading = true);
     try {
-      final displayName = await AuthService.loginWithGoogle(context);
-      if (displayName != null) {
+      final result = await AuthService.loginWithGoogle(context);
+      if (result != null) {
+        final displayName = result["displayName"] ?? 'Usuario';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("¡Bienvenido, $displayName!"),
