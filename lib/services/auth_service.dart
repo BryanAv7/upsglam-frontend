@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_sign_in/google_sign_in.dart';
@@ -7,26 +8,39 @@ import '../utils/constants.dart';
 class AuthService {
   // ------------------ Registro normal ------------------
   static Future<Map<String, String>> register(
-      String username, String email, String password) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/register'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-        'displayName': username,
-      }),
-    );
+      String username,
+      String email,
+      String password,
+      File? image,
+      ) async {
+    final uri = Uri.parse('$baseUrl/auth/register');
+    var request = http.MultipartRequest('POST', uri);
+
+    request.fields['email'] = email;
+    request.fields['password'] = password;
+    request.fields['displayName'] = username;
+
+    if (image != null) {
+      var multipartFile = await http.MultipartFile.fromPath(
+        'photo',
+        image.path,
+      );
+      request.files.add(multipartFile);
+    }
+
+    final response = await request.send();
+    final body = await response.stream.bytesToString();
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-
+      final data = jsonDecode(body);
       return {
         "uid": data["uid"]?.toString() ?? '',
         "displayName": data["displayName"] ?? username,
+        "photoUrl": data["photoUrl"] ?? '',
+        "email": data["email"] ?? email,
       };
     } else {
-      throw Exception('Error al registrar: ${response.body}');
+      throw Exception('Error al registrar: $body');
     }
   }
 
@@ -40,19 +54,19 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-
       return {
         "uid": data["uid"]?.toString() ?? '',
         "displayName": data["displayName"] ?? email,
+        "photoUrl": data["photoUrl"] ?? '',
+        "email": data["email"] ?? email,
       };
     } else {
       throw Exception('Error al iniciar sesión: ${response.body}');
     }
   }
 
-  // ------------------ Login/Registro con Google ------------------
-  static Future<Map<String, String>?> loginWithGoogle(
-      BuildContext context) async {
+  // ------------------ Login con Google ------------------
+  static Future<Map<String, String>?> loginWithGoogle(BuildContext context) async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
       final GoogleSignInAccount? account = await googleSignIn.signIn();
@@ -70,13 +84,11 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         return {
-          "uid": data["localId"]?.toString() ?? '',
-          "displayName": data["displayName"] ??
-              account.displayName ??
-              account.email ??
-              'Usuario',
+          "uid": data["uid"]?.toString() ?? '',
+          "displayName": data["displayName"] ?? account.displayName ?? 'Usuario',
+          "photoUrl": data["photoUrl"] ?? '',
+          "email": data["email"] ?? account.email,
         };
       } else {
         throw Exception('Error al iniciar sesión con Google: ${response.body}');
