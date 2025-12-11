@@ -16,10 +16,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final emailCtrl = TextEditingController();
   final passCtrl = TextEditingController();
 
-  bool loading = false;
   bool _obscurePassword = true;
-
   File? _selectedImage;
+
+  // Botones
+  bool _loadingNormal = false;
+  bool _loadingGoogle = false;
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -33,7 +35,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
-    setState(() => loading = true);
+    setState(() => _loadingNormal = true);
 
     try {
       final result = await AuthService.register(
@@ -61,12 +63,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
       );
     } finally {
-      setState(() => loading = false);
+      setState(() => _loadingNormal = false);
     }
   }
 
   Future<void> _registerWithGoogle() async {
-    setState(() => loading = true);
+    setState(() => _loadingGoogle = true);
 
     try {
       final result = await AuthService.loginWithGoogle(context);
@@ -84,8 +86,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           MaterialPageRoute(builder: (_) => const LoginScreen()),
         );
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+      );
     } finally {
-      setState(() => loading = false);
+      setState(() => _loadingGoogle = false);
     }
   }
 
@@ -121,8 +127,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: CircleAvatar(
                 radius: 55,
                 backgroundColor: Colors.grey[800],
-                backgroundImage:
-                _selectedImage != null ? FileImage(_selectedImage!) : null,
+                backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : null,
                 child: _selectedImage == null
                     ? const Icon(Icons.camera_alt, color: Colors.white, size: 32)
                     : null,
@@ -130,8 +135,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 25),
 
-            const Text("Nombre de usuario",
-                style: TextStyle(color: Colors.grey)),
+            const Text("Nombre de usuario", style: TextStyle(color: Colors.grey)),
             TextField(
               controller: userCtrl,
               style: const TextStyle(color: Colors.white),
@@ -169,32 +173,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     _obscurePassword ? Icons.visibility_off : Icons.visibility,
                     color: Colors.grey,
                   ),
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                 ),
               ),
             ),
             const SizedBox(height: 30),
 
+            // Botón registro
             ElevatedButton(
-              onPressed: loading ? null : _register,
+              onPressed: _loadingNormal ? null : _register,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: loading
+              child: _loadingNormal
                   ? const CircularProgressIndicator(color: Colors.black)
                   : const Text("Registrarse"),
             ),
             const SizedBox(height: 18),
 
+            // Botón registro con Google
             OutlinedButton.icon(
-              onPressed: loading ? null : _registerWithGoogle,
-              icon: const Icon(Icons.login, color: Colors.white),
-              label: const Text(
-                'Registrarse con Google',
-                style: TextStyle(color: Colors.white),
+              onPressed: _loadingGoogle ? null : _registerWithGoogle,
+              icon: _loadingGoogle
+                  ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              )
+                  : const Icon(Icons.login, color: Colors.white),
+              label: Text(
+                _loadingGoogle ? 'Iniciando...' : 'Registrarse con Google',
+                style: const TextStyle(color: Colors.white),
               ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.grey),

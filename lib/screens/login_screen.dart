@@ -15,7 +15,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailCtrl = TextEditingController();
   final TextEditingController passCtrl = TextEditingController();
   bool _obscurePassword = true;
-  bool _loading = false;
+
+  // Botones
+  bool _loadingNormal = false;
+  bool _loadingGoogle = false;
 
   Future<void> _login() async {
     final email = emailCtrl.text.trim();
@@ -28,14 +31,14 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    setState(() => _loading = true);
+    setState(() => _loadingNormal = true);
 
     try {
       final result = await AuthService.login(email, pass);
 
       final uid = result["uid"] ?? "";
       final displayName = result["displayName"] ?? email;
-      final photoUrl = result["photoUrl"] ?? ""; // <-- URL de la foto
+      final photoUrl = result["photoUrl"] ?? "";
 
       if (uid.isEmpty) throw Exception("No se obtuvo UID del usuario");
 
@@ -54,14 +57,16 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
       );
     } finally {
-      setState(() => _loading = false);
+      setState(() => _loadingNormal = false);
     }
   }
 
   Future<void> _loginWithGoogle() async {
-    setState(() => _loading = true);
+    setState(() => _loadingGoogle = true);
+
     try {
       final result = await AuthService.loginWithGoogle(context);
+
       if (result != null) {
         final uid = result["uid"] ?? "";
         final displayName = result["displayName"] ?? "Usuario";
@@ -70,10 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (uid.isEmpty) throw Exception("No se obtuvo UID de Google");
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("¡Bienvenido, $displayName!"),
-            backgroundColor: Colors.green,
-          ),
+          SnackBar(content: Text("¡Bienvenido, $displayName!"), backgroundColor: Colors.green),
         );
 
         Navigator.pushReplacement(
@@ -82,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
             builder: (_) => HomeScreen(
               uid: uid,
               displayName: displayName,
-              photoUrl: photoUrl, // <-- pasar foto
+              photoUrl: photoUrl,
             ),
           ),
         );
@@ -92,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
       );
     } finally {
-      setState(() => _loading = false);
+      setState(() => _loadingGoogle = false);
     }
   }
 
@@ -107,7 +109,12 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 20),
-              Image.asset('assets/images/logo2f.png', height: 200, width: 200, color: Colors.white),
+              Image.asset(
+                'assets/images/logo2f.png',
+                height: 200,
+                width: 200,
+                color: Colors.white,
+              ),
               const SizedBox(height: 6),
               const Text(
                 'UPSGLAM 2.0',
@@ -116,7 +123,11 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 28),
               const Text('Correo', style: TextStyle(fontSize: 14, color: Colors.grey)),
-              TextField(controller: emailCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: 'user@gmail.com')),
+              TextField(
+                controller: emailCtrl,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(hintText: 'user@gmail.com'),
+              ),
               const SizedBox(height: 20),
               const Text('Contraseña', style: TextStyle(fontSize: 14, color: Colors.grey)),
               TextField(
@@ -137,23 +148,42 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 28),
+
+              // Botón login
               ElevatedButton(
-                onPressed: _loading ? null : _login,
+                onPressed: _loadingNormal ? null : _login,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: _loading
+                child: _loadingNormal
                     ? const CircularProgressIndicator(color: Colors.black)
                     : const Text('Ingresar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 14),
+
+              // Botón login Google
               OutlinedButton.icon(
-                onPressed: _loading ? null : _loginWithGoogle,
-                icon: Image.asset('assets/images/logoGoogle.png', height: 20, width: 20, color: Colors.white, colorBlendMode: BlendMode.srcIn),
-                label: const Text('Iniciar sesión con Google', style: TextStyle(color: Colors.white, fontSize: 15)),
+                onPressed: _loadingGoogle ? null : _loginWithGoogle,
+                icon: _loadingGoogle
+                    ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                )
+                    : Image.asset(
+                  'assets/images/logoGoogle.png',
+                  height: 20,
+                  width: 20,
+                  color: Colors.white,
+                  colorBlendMode: BlendMode.srcIn,
+                ),
+                label: Text(
+                  _loadingGoogle ? 'Iniciando...' : 'Iniciar sesión con Google',
+                  style: const TextStyle(color: Colors.white, fontSize: 15),
+                ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Color(0xFF616161)),
                   foregroundColor: Colors.white,
@@ -161,6 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
+
               const SizedBox(height: 24),
               Center(
                 child: Row(
@@ -169,7 +200,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text("¿No tienes una Cuenta? ", style: TextStyle(color: Colors.grey, fontSize: 14)),
                     GestureDetector(
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen())),
-                      child: const Text('Registrarte', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Registrarte',
+                        style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ],
                 ),
