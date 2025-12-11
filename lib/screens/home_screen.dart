@@ -8,12 +8,14 @@ class HomeScreen extends StatefulWidget {
   final String uid;
   final String displayName;
   final String photoUrl;
+  final String email;
 
   const HomeScreen({
     super.key,
     required this.uid,
     required this.displayName,
-    required this.photoUrl, // <-- foto user
+    required this.photoUrl,
+    required this.email,
   });
 
   @override
@@ -23,12 +25,12 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _message = '';
   final ImagePicker _picker = ImagePicker();
+  bool showProfile = false;
 
   void _setMessage(String text) => setState(() => _message = text);
 
   Future<void> pickAndUploadImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-
     if (image == null) {
       _setMessage("No seleccionaste ninguna imagen.");
       return;
@@ -42,7 +44,6 @@ class _HomeScreenState extends State<HomeScreen> {
         caption: "Mi nueva publicación",
         userUid: widget.uid,
       );
-
       _setMessage("¡Imagen subida con éxito!");
     } catch (e) {
       _setMessage("Error: $e");
@@ -65,19 +66,17 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 children: [
                   const SizedBox(width: 16),
-                  // ---------------- FOTO DEL USUARIO ----------------
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundImage: widget.photoUrl.isNotEmpty
-                        ? NetworkImage(widget.photoUrl)
-                        : null,
-                    child: widget.photoUrl.isEmpty
-                        ? const Icon(Icons.person, color: Colors.white)
-                        : null,
-                    backgroundColor: Colors.grey[700],
-                  ),
+                  // CircleAvatar(
+                  //   radius: 20,
+                  //   backgroundImage: widget.photoUrl.isNotEmpty
+                  //       ? NetworkImage(widget.photoUrl)
+                  //       : null,
+                  //   child: widget.photoUrl.isEmpty
+                  //       ? const Icon(Icons.person, color: Colors.white)
+                  //       : null,
+                  //   backgroundColor: Colors.grey[700],
+                  // ),
                   const SizedBox(width: 12),
-                  // ---------------- NOMBRE ----------------
                   Expanded(
                     child: Text(
                       '➥ Bienvenido, ${widget.displayName}',
@@ -102,8 +101,100 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             Expanded(
               child: Container(
-                alignment: Alignment.center,
-                child: _message.isNotEmpty
+                alignment: Alignment.topCenter,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: showProfile
+                    ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 20),
+                    Center(
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundImage: widget.photoUrl.isNotEmpty
+                            ? NetworkImage(widget.photoUrl)
+                            : null,
+                        child: widget.photoUrl.isEmpty
+                            ? const Icon(Icons.person, size: 50, color: Colors.white)
+                            : null,
+                        backgroundColor: Colors.grey[700],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Text(
+                        'Información Personal',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Nombre:',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Text(
+                        widget.displayName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const Divider(color: Colors.grey, height: 24, thickness: 0.5),
+                    const Text(
+                      'Correo electrónico:',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Text(
+                        widget.email,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const Divider(color: Colors.grey, height: 24, thickness: 0.5),
+                    const SizedBox(height: 16),
+                    const Center(
+                      child: Text(
+                        'Publicaciones realizadas',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Center(
+                      child: Text(
+                        '(vacío)',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+                    : _message.isNotEmpty
                     ? Padding(
                   padding: const EdgeInsets.all(20),
                   child: Text(
@@ -112,10 +203,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     textAlign: TextAlign.center,
                   ),
                 )
-                    : const Text(
-                  'Contenido principal aquí',
-                  style: TextStyle(color: Colors.white, fontSize: 18),
-                  textAlign: TextAlign.center,
+                    : const Center(
+                  child: Text(
+                    'Contenido principal aquí',
+                    style: const TextStyle(color: Colors.white, fontSize: 18),
+                  ),
                 ),
               ),
             ),
@@ -127,7 +219,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.home, color: Colors.white),
-                    onPressed: () => _setMessage(''),
+                    onPressed: () => setState(() {
+                      showProfile = false;
+                      _setMessage('');
+                    }),
                   ),
                   IconButton(
                     icon: const Icon(Icons.add_circle, color: Colors.white, size: 32),
@@ -135,7 +230,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.person_outline, color: Colors.white),
-                    onPressed: () => _setMessage('Publicaciones Realizadas'),
+                    onPressed: () => setState(() {
+                      showProfile = true;
+                    }),
                   ),
                 ],
               ),

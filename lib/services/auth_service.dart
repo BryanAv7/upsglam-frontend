@@ -14,45 +14,22 @@ class AuthService {
       File? image,
       ) async {
     final uri = Uri.parse('$baseUrl/auth/register');
-
     var request = http.MultipartRequest('POST', uri);
 
-    // --- Campos ---
     request.fields['email'] = email;
     request.fields['password'] = password;
     request.fields['displayName'] = username;
 
-    print("[register] Enviando registro para email=$email, username=$username");
-
-    // --- Foto ---
     if (image != null) {
       var multipartFile = await http.MultipartFile.fromPath(
         'photo',
         image.path,
       );
-
-      print("[register] Agregando archivo:");
-      print("   nombre de archivo: ${multipartFile.filename}");
-      print("   content-type: ${multipartFile.contentType}");
-      print("   longitud en bytes: ${multipartFile.length}");
-
       request.files.add(multipartFile);
-    } else {
-      print("[register] No se envió archivo de foto.");
     }
 
-    // --- Logs ---
-    print("[register] Campos enviados:");
-    request.fields.forEach((k, v) => print("   $k = $v"));
-    print("[register] Cantidad de archivos adjuntos: ${request.files.length}");
-
-    // --- Envío ---
     final response = await request.send();
-
-    print("[register] Status code: ${response.statusCode}");
-
     final body = await response.stream.bytesToString();
-    print("[register] Body recibido: $body");
 
     if (response.statusCode == 200) {
       final data = jsonDecode(body);
@@ -60,6 +37,7 @@ class AuthService {
         "uid": data["uid"]?.toString() ?? '',
         "displayName": data["displayName"] ?? username,
         "photoUrl": data["photoUrl"] ?? '',
+        "email": data["email"] ?? email,
       };
     } else {
       throw Exception('Error al registrar: $body');
@@ -76,18 +54,18 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-
       return {
         "uid": data["uid"]?.toString() ?? '',
         "displayName": data["displayName"] ?? email,
         "photoUrl": data["photoUrl"] ?? '',
+        "email": data["email"] ?? email,
       };
     } else {
       throw Exception('Error al iniciar sesión: ${response.body}');
     }
   }
 
-  // ------------------ Registro/Login con Google (foto) ------------------
+  // ------------------ Login con Google ------------------
   static Future<Map<String, String>?> loginWithGoogle(BuildContext context) async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
@@ -104,16 +82,13 @@ class AuthService {
         body: jsonEncode({'idToken': idToken}),
       );
 
-      print("[GoogleLogin] Status code: ${response.statusCode}");
-      print("[GoogleLogin] Body recibido: ${response.body}");
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         return {
           "uid": data["uid"]?.toString() ?? '',
           "displayName": data["displayName"] ?? account.displayName ?? 'Usuario',
           "photoUrl": data["photoUrl"] ?? '',
+          "email": data["email"] ?? account.email,
         };
       } else {
         throw Exception('Error al iniciar sesión con Google: ${response.body}');

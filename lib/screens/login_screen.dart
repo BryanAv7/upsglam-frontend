@@ -16,7 +16,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController passCtrl = TextEditingController();
   bool _obscurePassword = true;
 
-  // Botones
   bool _loadingNormal = false;
   bool _loadingGoogle = false;
 
@@ -36,19 +35,14 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final result = await AuthService.login(email, pass);
 
-      final uid = result["uid"] ?? "";
-      final displayName = result["displayName"] ?? email;
-      final photoUrl = result["photoUrl"] ?? "";
-
-      if (uid.isEmpty) throw Exception("No se obtuvo UID del usuario");
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => HomeScreen(
-            uid: uid,
-            displayName: displayName,
-            photoUrl: photoUrl,
+            uid: result["uid"] ?? '',
+            displayName: result["displayName"] ?? email,
+            photoUrl: result["photoUrl"] ?? '',
+            email: result["email"] ?? email,
           ),
         ),
       );
@@ -68,23 +62,14 @@ class _LoginScreenState extends State<LoginScreen> {
       final result = await AuthService.loginWithGoogle(context);
 
       if (result != null) {
-        final uid = result["uid"] ?? "";
-        final displayName = result["displayName"] ?? "Usuario";
-        final photoUrl = result["photoUrl"] ?? "";
-
-        if (uid.isEmpty) throw Exception("No se obtuvo UID de Google");
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("¡Bienvenido, $displayName!"), backgroundColor: Colors.green),
-        );
-
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => HomeScreen(
-              uid: uid,
-              displayName: displayName,
-              photoUrl: photoUrl,
+              uid: result["uid"] ?? '',
+              displayName: result["displayName"] ?? 'Usuario',
+              photoUrl: result["photoUrl"] ?? '',
+              email: result["email"] ?? '',
             ),
           ),
         );
@@ -109,12 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 20),
-              Image.asset(
-                'assets/images/logo2f.png',
-                height: 200,
-                width: 200,
-                color: Colors.white,
-              ),
+              Image.asset('assets/images/logo2f.png', height: 200, width: 200, color: Colors.white),
               const SizedBox(height: 6),
               const Text(
                 'UPSGLAM 2.0',
@@ -123,11 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 28),
               const Text('Correo', style: TextStyle(fontSize: 14, color: Colors.grey)),
-              TextField(
-                controller: emailCtrl,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(hintText: 'user@gmail.com'),
-              ),
+              TextField(controller: emailCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: 'user@gmail.com')),
               const SizedBox(height: 20),
               const Text('Contraseña', style: TextStyle(fontSize: 14, color: Colors.grey)),
               TextField(
@@ -148,8 +124,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 28),
-
-              // Botón login
               ElevatedButton(
                 onPressed: _loadingNormal ? null : _login,
                 style: ElevatedButton.styleFrom(
@@ -163,27 +137,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     : const Text('Ingresar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 14),
-
-              // Botón login Google
               OutlinedButton.icon(
                 onPressed: _loadingGoogle ? null : _loginWithGoogle,
                 icon: _loadingGoogle
-                    ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                )
-                    : Image.asset(
-                  'assets/images/logoGoogle.png',
-                  height: 20,
-                  width: 20,
-                  color: Colors.white,
-                  colorBlendMode: BlendMode.srcIn,
-                ),
-                label: Text(
-                  _loadingGoogle ? 'Iniciando...' : 'Iniciar sesión con Google',
-                  style: const TextStyle(color: Colors.white, fontSize: 15),
-                ),
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Image.asset('assets/images/logoGoogle.png', height: 20, width: 20, color: Colors.white, colorBlendMode: BlendMode.srcIn),
+                label: Text(_loadingGoogle ? 'Iniciando...' : 'Iniciar sesión con Google', style: const TextStyle(color: Colors.white, fontSize: 15)),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Color(0xFF616161)),
                   foregroundColor: Colors.white,
@@ -191,7 +150,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
-
               const SizedBox(height: 24),
               Center(
                 child: Row(
@@ -200,10 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text("¿No tienes una Cuenta? ", style: TextStyle(color: Colors.grey, fontSize: 14)),
                     GestureDetector(
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen())),
-                      child: const Text(
-                        'Registrarte',
-                        style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
+                      child: const Text('Registrarte', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
