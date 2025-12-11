@@ -35,13 +35,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final uid = result["uid"] ?? "";
       final displayName = result["displayName"] ?? email;
+      final photoUrl = result["photoUrl"] ?? ""; // <-- URL de la foto
 
       if (uid.isEmpty) throw Exception("No se obtuvo UID del usuario");
 
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => HomeScreen(uid: uid, displayName: displayName),
+          builder: (_) => HomeScreen(
+            uid: uid,
+            displayName: displayName,
+            photoUrl: photoUrl,
+          ),
         ),
       );
     } catch (e) {
@@ -60,6 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result != null) {
         final uid = result["uid"] ?? "";
         final displayName = result["displayName"] ?? "Usuario";
+        final photoUrl = result["photoUrl"] ?? "";
 
         if (uid.isEmpty) throw Exception("No se obtuvo UID de Google");
 
@@ -73,7 +79,11 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => HomeScreen(uid: uid, displayName: displayName),
+            builder: (_) => HomeScreen(
+              uid: uid,
+              displayName: displayName,
+              photoUrl: photoUrl, // <-- pasar foto
+            ),
           ),
         );
       }

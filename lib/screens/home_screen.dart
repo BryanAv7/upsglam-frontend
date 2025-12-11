@@ -7,8 +7,14 @@ import 'login_screen.dart';
 class HomeScreen extends StatefulWidget {
   final String uid;
   final String displayName;
+  final String photoUrl;
 
-  const HomeScreen({super.key, required this.uid, required this.displayName});
+  const HomeScreen({
+    super.key,
+    required this.uid,
+    required this.displayName,
+    required this.photoUrl, // <-- foto user
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -59,10 +65,27 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 children: [
                   const SizedBox(width: 16),
+                  // ---------------- FOTO DEL USUARIO ----------------
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundImage: widget.photoUrl.isNotEmpty
+                        ? NetworkImage(widget.photoUrl)
+                        : null,
+                    child: widget.photoUrl.isEmpty
+                        ? const Icon(Icons.person, color: Colors.white)
+                        : null,
+                    backgroundColor: Colors.grey[700],
+                  ),
+                  const SizedBox(width: 12),
+                  // ---------------- NOMBRE ----------------
                   Expanded(
                     child: Text(
                       '➥ Bienvenido, ${widget.displayName}',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 20),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 20,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
