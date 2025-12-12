@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../services/post_service.dart';
+
 import 'login_screen.dart';
+import 'filter_screen.dart';  // <<< IMPORTANTE
 
 class HomeScreen extends StatefulWidget {
   final String uid;
@@ -23,82 +24,115 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _message = '';
   final ImagePicker _picker = ImagePicker();
-  bool showProfile = false;
 
-  File? _selectedImage;
-  bool showFilterButtons = false;
+  // Vista actual: "home" | "perfil" | "filter"
+  String currentView = "home";
 
-  void _setMessage(String text) => setState(() => _message = text);
-
-  void _navigateToHome() {
-    setState(() {
-      showProfile = false;
-      showFilterButtons = false;
-      _selectedImage = null;
-      _message = '';
-    });
-  }
+  // Imagen seleccionada que se enviará a FilterScreen
+  File? selectedImage;
 
   Future<void> pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
-        _selectedImage = File(image.path);
-        showFilterButtons = true;
+        selectedImage = File(image.path);
+        currentView = "filter";    // Abre FilterScreen en el área central
       });
     }
   }
 
-  void _cancelImageSelection() {
+  Widget _buildMainView() {
+    switch (currentView) {
+      case "perfil":
+        return _buildProfileView();
+      case "filter":
+        return FilterScreen(
+          imageFile: selectedImage!,
+          uid: widget.uid,
+          onComplete: () {
+            setState(() {
+              currentView = "home";
+              selectedImage = null;
+            });
+          },
+        );
+
+      default:
+        return _buildHomeContent();
+    }
+  }
+
+  Widget _buildHomeContent() {
+    return const Center(
+      child: Text(
+        'Contenido principal aquí',
+        style: TextStyle(color: Colors.white, fontSize: 18),
+      ),
+    );
+  }
+
+  Widget _buildProfileView() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 20),
+        Center(
+          child: CircleAvatar(
+            radius: 50,
+            backgroundImage: widget.photoUrl.isNotEmpty
+                ? NetworkImage(widget.photoUrl)
+                : null,
+            child: widget.photoUrl.isEmpty
+                ? const Icon(Icons.person, size: 50, color: Colors.white)
+                : null,
+            backgroundColor: Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Center(
+          child: Text(
+            'Información Personal',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        const Text('Nombre:',
+            style: TextStyle(color: Colors.grey, fontSize: 16)),
+        const SizedBox(height: 8),
+        Center(
+            child: Text(widget.displayName,
+                style: const TextStyle(color: Colors.white, fontSize: 16))),
+        const Divider(color: Colors.grey, height: 24),
+        const Text('Correo electrónico:',
+            style: TextStyle(color: Colors.grey, fontSize: 16)),
+        const SizedBox(height: 8),
+        Center(
+            child: Text(widget.email,
+                style: const TextStyle(color: Colors.white, fontSize: 16))),
+        const Divider(color: Colors.grey, height: 24),
+        const SizedBox(height: 16),
+        const Center(
+            child: Text('Publicaciones realizadas',
+                style: TextStyle(color: Colors.white, fontSize: 18))),
+        const SizedBox(height: 8),
+        const Center(
+            child: Text('(vacío)',
+                style: TextStyle(color: Colors.grey, fontSize: 16))),
+      ],
+    );
+  }
+
+  void _goHome() {
     setState(() {
-      _selectedImage = null;
-      showFilterButtons = false;
-      _message = '';
+      currentView = "home";
+      selectedImage = null;
     });
-  }
-
-  Future<void> _publishFilter() async {
-    if (_selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No hay imagen seleccionada.'), backgroundColor: Colors.red),
-      );
-      return;
-    }
-
-    _setMessage("Subiendo imagen...");
-
-    try {
-      await PostService.uploadPost(
-        filePath: _selectedImage!.path,
-        caption: "Mi nueva publicación",
-        userUid: widget.uid,
-      );
-
-      // Notificación
-      final successMessage = "¡Imagen subida con éxito!";
-      print(successMessage); // 👈 en consola
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(successMessage), backgroundColor: Colors.green),
-      );
-
-      // Limpiar y volver al home
-      setState(() {
-        _selectedImage = null;
-        showFilterButtons = false;
-        _message = '';
-      });
-      Future.delayed(const Duration(milliseconds: 800), _navigateToHome);
-
-    } catch (e) {
-      final errorMessage = "Error al subir: $e";
-      print(errorMessage); // Prueba de consola
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: Colors.red),
-      );
-      _setMessage("Error: $e");
-    }
   }
 
   @override
@@ -108,11 +142,13 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Barra superior
             Container(
               height: 60,
               decoration: BoxDecoration(
                 color: Colors.grey[900],
-                border: Border(bottom: BorderSide(color: Colors.grey.shade800)),
+                border:
+                Border(bottom: BorderSide(color: Colors.grey.shade800)),
               ),
               child: Row(
                 children: [
@@ -139,105 +175,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+
+            // Vista dinámica
             Expanded(
               child: Container(
-                alignment: Alignment.topCenter,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: showProfile
-                    ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 20),
-                    Center(
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundImage: widget.photoUrl.isNotEmpty
-                            ? NetworkImage(widget.photoUrl)
-                            : null,
-                        child: widget.photoUrl.isEmpty
-                            ? const Icon(Icons.person, size: 50, color: Colors.white)
-                            : null,
-                        backgroundColor: Colors.grey[700],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: Text(
-                        'Información Personal',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text('Nombre:', style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8),
-                    Center(child: Text(widget.displayName, style: const TextStyle(color: Colors.white, fontSize: 16))),
-                    const Divider(color: Colors.grey, height: 24, thickness: 0.5),
-                    const Text('Correo electrónico:', style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8),
-                    Center(child: Text(widget.email, style: const TextStyle(color: Colors.white, fontSize: 16))),
-                    const Divider(color: Colors.grey, height: 24, thickness: 0.5),
-                    const SizedBox(height: 16),
-                    const Center(child: Text('Publicaciones realizadas', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
-                    const SizedBox(height: 8),
-                    const Center(child: Text('(vacío)', style: TextStyle(color: Colors.grey, fontSize: 16))),
-                  ],
-                )
-                    : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (_selectedImage != null)
-                      Image.file(_selectedImage!, height: 200),
-                    if (showFilterButtons) ...[
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              // Aplicar filtro
-                            },
-                            child: const Text('Aplicar Filtro'),
-                          ),
-                          ElevatedButton(
-                            onPressed: _publishFilter,
-                            child: const Text('Publicar Filtro'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: _cancelImageSelection,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[700],
-                          minimumSize: const Size(180, 40),
-                        ),
-                        child: const Text('Cancelar'),
-                      ),
-                    ] else if (_message.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Text(
-                          _message,
-                          style: const TextStyle(color: Colors.white, fontSize: 18),
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                    else
-                      const Center(
-                        child: Text(
-                          'Contenido principal aquí',
-                          style: TextStyle(color: Colors.white, fontSize: 18),
-                        ),
-                      ),
-                  ],
-                ),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: _buildMainView(),
               ),
             ),
+
+            // Barra inferior
             Container(
               height: 60,
               color: Colors.grey[900],
@@ -246,17 +194,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.home, color: Colors.white),
-                    onPressed: _navigateToHome,
+                    onPressed: _goHome,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.add_circle, color: Colors.white, size: 32),
+                    icon:
+                    const Icon(Icons.add_circle, color: Colors.white, size: 32),
                     onPressed: pickImage,
                   ),
                   IconButton(
                     icon: const Icon(Icons.person_outline, color: Colors.white),
                     onPressed: () => setState(() {
-                      showProfile = true;
-                      showFilterButtons = false;
+                      currentView = "perfil";
                     }),
                   ),
                 ],
