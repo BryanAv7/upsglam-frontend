@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -27,15 +28,36 @@ class _FilterScreenState extends State<FilterScreen> {
   late FilterService _filterService;
 
   bool _loading = false;
-  String filtroSeleccionado = "sobel";
+
+  // <<< CAMBIO: filtro por defecto ahora es “ninguno”
+  String filtroSeleccionado = "ninguno";
+
   Map<String, double> valoresActuales = {};
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     _filterService = FilterService();
-    valoresActuales =
-    Map<String, double>.from(FilterConfig.valoresDefecto[filtroSeleccionado]!);
+
+    _cargarValoresIniciales();
+
+    // <<< CAMBIO: solo dispara auto-procesado si NO es “ninguno”
+    if (filtroSeleccionado != "ninguno") {
+      _triggerProcessing();
+    }
+  }
+
+  void _cargarValoresIniciales() {
+    if (filtroSeleccionado == "ninguno") {
+      valoresActuales = {};
+      return;
+    }
+
+    final defaults = FilterConfig.valoresDefecto[filtroSeleccionado];
+    valoresActuales = defaults != null
+        ? Map<String, double>.from(defaults)
+        : {};
   }
 
   void _setMessage(String msg) {
@@ -44,7 +66,24 @@ class _FilterScreenState extends State<FilterScreen> {
     );
   }
 
+  // ---------------------------------------------------------
+  // DEBOUNCE
+  // ---------------------------------------------------------
+  void _triggerProcessing() {
+    if (filtroSeleccionado == "ninguno") return; // <<< CAMBIO
+
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      _sendImage();
+    });
+  }
+
+  // ---------------------------------------------------------
+  // PROCESAR IMAGEN
+  // ---------------------------------------------------------
   Future<void> _sendImage() async {
+    if (filtroSeleccionado == "ninguno") return; // <<< CAMBIO
+
     setState(() => _loading = true);
 
     final (bytes, _) = await _filterService.procesarImagen(
@@ -59,13 +98,18 @@ class _FilterScreenState extends State<FilterScreen> {
     });
   }
 
+  // ---------------------------------------------------------
+  // PUBLICAR
+  // ---------------------------------------------------------
   Future<void> _publishFilter() async {
     try {
       _setMessage("Subiendo imagen...");
 
       File toUpload;
 
-      if (_processedImageBytes != null) {
+      if (filtroSeleccionado == "ninguno") {
+        toUpload = widget.imageFile;
+      } else if (_processedImageBytes != null) {
         final tempPath = "${Directory.systemTemp.path}/processed_image.png";
         final file = File(tempPath);
         await file.writeAsBytes(_processedImageBytes!);
@@ -82,39 +126,58 @@ class _FilterScreenState extends State<FilterScreen> {
 
       _setMessage("Imagen publicada con éxito.");
       widget.onComplete();
-
     } catch (e) {
       _setMessage("Error al publicar: $e");
     }
   }
 
+  // ---------------------------------------------------------
+  // PARÁMETROS
+  // ---------------------------------------------------------
   Widget _buildParametros() {
-    final params = FilterConfig.filtrosParametros[filtroSeleccionado]!;
+    if (filtroSeleccionado == "ninguno") {
+      return const Text(
+        "Sin filtro seleccionado.",
+        style: TextStyle(color: Colors.white70, fontSize: 16),
+      );
+    }
+
+    final params = FilterConfig.filtrosParametros[filtroSeleccionado] ?? [];
+
+    if (params.isEmpty) {
+      return const Text(
+        "Este filtro no requiere parámetros.",
+        style: TextStyle(color: Colors.white70, fontSize: 16),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Parámetros: $filtroSeleccionado",
+          "Parámetros del filtro: $filtroSeleccionado",
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
 
         for (var param in params)
           Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "$param: ${valoresActuales[param]!.toStringAsFixed(2)}",
+                "$param: ${valoresActuales[param]?.toStringAsFixed(2)}",
                 style: const TextStyle(color: Colors.white),
               ),
+
               Slider(
                 value: valoresActuales[param]!,
                 min: FilterConfig.rangosParametros[filtroSeleccionado]![param]![0],
                 max: FilterConfig.rangosParametros[filtroSeleccionado]![param]![1],
-                onChanged: (value) {
+                onChanged: _loading ? null : (value) {
                   setState(() {
                     valoresActuales[param] = value;
                   });
+                  _triggerProcessing();
                 },
               ),
             ],
@@ -123,6 +186,9 @@ class _FilterScreenState extends State<FilterScreen> {
     );
   }
 
+  // ---------------------------------------------------------
+  // CARRUSEL DE FILTROS
+  // ---------------------------------------------------------
   Widget _buildFiltroCarousel() {
     return SizedBox(
       height: 60,
@@ -135,9 +201,13 @@ class _FilterScreenState extends State<FilterScreen> {
             onTap: () {
               setState(() {
                 filtroSeleccionado = f;
-                valoresActuales =
-                Map<String, double>.from(FilterConfig.valoresDefecto[f]!);
+                _processedImageBytes = null;        // <<< CAMBIO
+                _cargarValoresIniciales();
               });
+
+              if (f != "ninguno") {
+                _triggerProcessing();              // <<< SOLO si aplica
+              }
             },
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -162,58 +232,58 @@ class _FilterScreenState extends State<FilterScreen> {
     );
   }
 
+  // ---------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    final showResult = _processedImageBytes != null;
+    final showResult =
+        filtroSeleccionado != "ninguno" && _processedImageBytes != null;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              children: [
-                const SizedBox(height: 10),
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 150),
+            opacity: _loading ? 0.4 : 1,
+            child: AbsorbPointer(
+              absorbing: _loading,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10),
 
-                Container(
-                  height: 260,
-                  alignment: Alignment.center,
-                  child: showResult
-                      ? Image.memory(_processedImageBytes!)
-                      : Image.file(widget.imageFile),
+                    Container(
+                      height: 260,
+                      alignment: Alignment.center,
+                      child: showResult
+                          ? Image.memory(_processedImageBytes!)
+                          : Image.file(widget.imageFile),
+                    ),
+
+                    const SizedBox(height: 20),
+                    _buildFiltroCarousel(),
+                    const SizedBox(height: 20),
+                    _buildParametros(),
+                    const SizedBox(height: 20),
+
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: _loading ? null : _publishFilter,
+                        child: const Text("Publicar"),
+                      ),
+                    ),
+
+                    const SizedBox(height: 60),
+                  ],
                 ),
-
-                const SizedBox(height: 20),
-
-                _buildFiltroCarousel(),
-
-                const SizedBox(height: 20),
-
-                _buildParametros(),
-
-                const SizedBox(height: 20),
-
-                ElevatedButton(
-                  onPressed: _loading ? null : _sendImage,
-                  child: _loading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text("Procesar imagen"),
-                ),
-
-                const SizedBox(height: 20),
-
-                ElevatedButton(
-                  onPressed: _publishFilter,
-                  child: const Text("Publicar"),
-                ),
-
-                const SizedBox(height: 60),
-              ],
+              ),
             ),
           ),
 
-          // BOTÓN FLOTANTE "X" (CANCELAR)
+          // BOTÓN CERRAR
           Positioned(
             top: 20,
             left: 10,
@@ -229,6 +299,11 @@ class _FilterScreenState extends State<FilterScreen> {
               ),
             ),
           ),
+
+          if (_loading)
+            const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
         ],
       ),
     );
