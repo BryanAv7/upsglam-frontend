@@ -13,7 +13,7 @@ class AuthService {
       String password,
       File? image,
       ) async {
-    final uri = Uri.parse('$baseUrl/auth/register');
+    final uri = Uri.parse('${await AppConfig.getBaseUrl()}/auth/register');
     var request = http.MultipartRequest('POST', uri);
 
     request.fields['email'] = email;
@@ -47,7 +47,7 @@ class AuthService {
   // ------------------ Login normal ------------------
   static Future<Map<String, String>> login(String email, String password) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/login'),
+      Uri.parse('${await AppConfig.getBaseUrl()}/auth/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
@@ -77,7 +77,7 @@ class AuthService {
       if (idToken == null) throw Exception('No se obtuvo el idToken de Google');
 
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/google'),
+        Uri.parse('${await AppConfig.getBaseUrl()}/auth/google'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'idToken': idToken}),
       );
