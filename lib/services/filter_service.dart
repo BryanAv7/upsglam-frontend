@@ -45,6 +45,12 @@ class FilterService {
     try {
       final response = await request.send();
       final bytes = await response.stream.toBytes();
+      print("======== DEBUG RESPONSE ========");
+      print("Status: ${response.statusCode}");
+      print("Headers: ${response.headers}");
+      print("Bytes length: ${bytes.length}");
+      print("================================");
+
       final type = response.headers["content-type"] ?? "";
 
       if (type.contains("text") || type.contains("json")) {

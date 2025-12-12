@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
-import 'screens/dev_home.dart';  //TEMPORAL
 
 void main() {
   runApp(const MyApp());
@@ -22,7 +21,7 @@ class MyApp extends StatelessWidget {
       title: 'UPSGlam App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
-      home: const DevHome(),
+      home: const LoginScreen(),
     );
   }
 }
