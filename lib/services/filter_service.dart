@@ -6,20 +6,25 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
-import '../utils/constants.dart';   // <<< IMPORTANTE
+import '../utils/constants.dart';   // donde está AppConfig
 
 class FilterService {
-  final String base = baseUrl;       // <<< usa la URL global
+  FilterService();
 
-  /// Envía imagen + parámetros al backend
-  /// Retorna:
-  /// (bytesProcesados, mensajeServidor)
+  /// Obtiene la URL base configurada por el usuario.
+  Future<String> _getBaseUrl() async {
+    return await AppConfig.getBaseUrl();   // esto viene de SharedPreferences
+  }
+
+  /// Envía imagen + parámetros al backend.
+  /// Retorna: (bytesProcesados, mensajeServidor)
   Future<(Uint8List?, String?)> procesarImagen({
     required File imagen,
     required String filtro,
     required Map<String, double> parametros,
   }) async {
 
+    final base = await _getBaseUrl();    // <<< AQUÍ sí puedes usar await
     final uri = Uri.parse("$base/api/imagen/procesar");
 
     var request = http.MultipartRequest("POST", uri);
@@ -45,11 +50,6 @@ class FilterService {
     try {
       final response = await request.send();
       final bytes = await response.stream.toBytes();
-      print("======== DEBUG RESPONSE ========");
-      print("Status: ${response.statusCode}");
-      print("Headers: ${response.headers}");
-      print("Bytes length: ${bytes.length}");
-      print("================================");
 
       final type = response.headers["content-type"] ?? "";
 

@@ -10,7 +10,7 @@ class PostService {
     required String caption,
     required String userUid,
   }) async {
-    final uri = Uri.parse('$baseUrl/posts/upload');
+    final uri = Uri.parse('${await AppConfig.getBaseUrl()}/posts/upload');
     final request = http.MultipartRequest('POST', uri);
 
     // envio

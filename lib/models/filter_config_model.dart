@@ -2,12 +2,14 @@
 
 class FilterConfig {
   static final List<String> filtros = [
+    "ninguno",
     "emboss",
     "sobel",
     "gauss",
     "sharpen",
     "sombras_epico",
-    "resaltado_frio"
+    "resaltado_frio",
+    "marco"
   ];
 
   static final Map<String, List<String>> filtrosParametros = {
@@ -17,6 +19,7 @@ class FilterConfig {
     "sharpen": ["sharp_factor"],
     "sombras_epico": ["highlight_boost", "vignette_strength"],
     "resaltado_frio": ["blue_boost", "contrast"],
+    "marco": [],
   };
 
   static final Map<String, Map<String, List<double>>> rangosParametros = {
@@ -50,5 +53,6 @@ class FilterConfig {
     "sharpen": {"sharp_factor": 20.0},
     "sombras_epico": {"highlight_boost": 1.1, "vignette_strength": 0.5},
     "resaltado_frio": {"blue_boost": 1.2, "contrast": 1.3},
+    "marco": {},
   };
 }
