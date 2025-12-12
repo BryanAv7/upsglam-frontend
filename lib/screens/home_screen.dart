@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'login_screen.dart';
-import 'filter_screen.dart';  // <<< IMPORTANTE
+import 'filter_screen.dart';
+
+import '../services/feed_service.dart';
+import '../models/feed_post.dart';
 
 class HomeScreen extends StatefulWidget {
   final String uid;
@@ -26,18 +29,43 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final ImagePicker _picker = ImagePicker();
 
-  // Vista actual: "home" | "perfil" | "filter"
   String currentView = "home";
 
-  // Imagen seleccionada que se enviará a FilterScreen
   File? selectedImage;
+
+  // FEED
+  List<FeedPost> feedPosts = [];
+  bool loadingFeed = true;
+  bool errorFeed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    loadFeed();
+  }
+
+  Future<void> loadFeed() async {
+    try {
+      final result = await FeedService.fetchFeed();
+      setState(() {
+        feedPosts = result;
+        loadingFeed = false;
+      });
+    } catch (e) {
+      setState(() {
+        loadingFeed = false;
+        errorFeed = true;
+      });
+    }
+  }
 
   Future<void> pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+
     if (image != null) {
       setState(() {
         selectedImage = File(image.path);
-        currentView = "filter";    // Abre FilterScreen en el área central
+        currentView = "filter";
       });
     }
   }
@@ -46,6 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (currentView) {
       case "perfil":
         return _buildProfileView();
+
       case "filter":
         return FilterScreen(
           imageFile: selectedImage!,
@@ -55,6 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
               currentView = "home";
               selectedImage = null;
             });
+            loadFeed(); // refrescar feed después de publicar
           },
         );
 
@@ -63,19 +93,97 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // =======================================
+  // FEED (HOME)
+  // =======================================
   Widget _buildHomeContent() {
-    return const Center(
-      child: Text(
-        'Contenido principal aquí',
-        style: TextStyle(color: Colors.white, fontSize: 18),
+    if (loadingFeed) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    }
+
+    if (errorFeed) {
+      return Center(
+        child: Text(
+          "Error al cargar el feed",
+          style: const TextStyle(color: Colors.red, fontSize: 18),
+        ),
+      );
+    }
+
+    if (feedPosts.isEmpty) {
+      return const Center(
+        child: Text(
+          'No hay publicaciones',
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: loadFeed,
+      color: Colors.white,
+      backgroundColor: Colors.black,
+      child: ListView.builder(
+        itemCount: feedPosts.length,
+        itemBuilder: (context, index) {
+          final post = feedPosts[index];
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: Colors.grey[900],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header usuario
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: NetworkImage(post.profileImageUrl),
+                  ),
+                  title: Text(
+                    post.userUid,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  subtitle: Text(
+                    post.createdAt,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ),
+
+                // Imagen principal del post
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: Image.network(
+                    post.publicUrl,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+
+                // Caption
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    post.caption,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
+  // ==================================
+  // VISTA PERFIL
+  // ==================================
   Widget _buildProfileView() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
+    return ListView(
       children: [
         const SizedBox(height: 20),
         Center(
@@ -106,24 +214,21 @@ class _HomeScreenState extends State<HomeScreen> {
             style: TextStyle(color: Colors.grey, fontSize: 16)),
         const SizedBox(height: 8),
         Center(
-            child: Text(widget.displayName,
-                style: const TextStyle(color: Colors.white, fontSize: 16))),
+          child: Text(
+            widget.displayName,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+          ),
+        ),
         const Divider(color: Colors.grey, height: 24),
         const Text('Correo electrónico:',
             style: TextStyle(color: Colors.grey, fontSize: 16)),
         const SizedBox(height: 8),
         Center(
-            child: Text(widget.email,
-                style: const TextStyle(color: Colors.white, fontSize: 16))),
-        const Divider(color: Colors.grey, height: 24),
-        const SizedBox(height: 16),
-        const Center(
-            child: Text('Publicaciones realizadas',
-                style: TextStyle(color: Colors.white, fontSize: 18))),
-        const SizedBox(height: 8),
-        const Center(
-            child: Text('(vacío)',
-                style: TextStyle(color: Colors.grey, fontSize: 16))),
+          child: Text(
+            widget.email,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+          ),
+        ),
       ],
     );
   }
@@ -135,6 +240,9 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // ==================================
+  // BUILD PRINCIPAL
+  // ==================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -147,8 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 60,
               decoration: BoxDecoration(
                 color: Colors.grey[900],
-                border:
-                Border(bottom: BorderSide(color: Colors.grey.shade800)),
+                border: Border(bottom: BorderSide(color: Colors.grey.shade800)),
               ),
               child: Row(
                 children: [
@@ -179,8 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // Vista dinámica
             Expanded(
               child: Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 child: _buildMainView(),
               ),
             ),
@@ -197,8 +303,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: _goHome,
                   ),
                   IconButton(
-                    icon:
-                    const Icon(Icons.add_circle, color: Colors.white, size: 32),
+                    icon: const Icon(Icons.add_circle,
+                        color: Colors.white, size: 32),
                     onPressed: pickImage,
                   ),
                   IconButton(
